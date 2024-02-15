@@ -21,8 +21,29 @@ defmodule Csv do
   Você pode assumir que o valor das colunas não contém nenhuma vírgula.
   """
 
-  @spec parse(binary()) :: {:ok, [map()]} | {:error, String.t()}
-  def parse(_file) do
-    raise "Not implemented"
+@spec parse(binary()) :: {:ok, [map()]} | {:error, String.t()}
+def parse(file_path) do
+  case File.read(file_path) do #Le o arquivo
+    {:ok, ""} -> {:error, "File is empty"} #Caso o arquivo esteja vazio
+    {:ok, content} ->
+    case String.split(content, "\n") do #Divide as linhas do arquivo
+      [header | data_lines] -> #Separa a primeira linha do arquivo para o cabeçalho e o resto para os dados
+      columns = String.split(String.trim_trailing(header, "\r"), ",") # Separa as colunas usando as virgulas
+      case Enum.all?(data_lines, fn line -> length(String.split(line, ",")) == length(columns) end) do #Checa se tem a mesma quantidade de colunas em todas as linhas
+        true ->
+          parsed_data = data_lines
+          |> Enum.map(&String.trim_trailing(&1, "\r"))
+          |> Enum.map(&String.split(&1, ","))
+          |> Enum.map(fn line -> Enum.zip(columns, line)
+                               |> Enum.into(%{}) end) # Utiliza uma função anonima para juntar os headers com os dados e os coloca em tuplas
+          {:ok, parsed_data}
+        false ->
+          {:error, "Invalid CSV"}
+      end
+    end
+    {:error, _reason} -> {:error, "File not found"} #Arquivo Não encontrado
   end
 end
+end
+
+# C:/Users/User/OneDrive/Área de Trabalho/csv_Vinicius/test/fixtures/cities.csv
